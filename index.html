@@ -1,4 +1,4 @@
-<!-- Full HTML for Avigyan Kingdom game with Firebase, leaderboard, game over animation, and error handling -->
+<!-- Full HTML for Avigyan Kingdom game with daily leaderboard, medals, and winner highlight -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -63,19 +63,17 @@
     .gold { background: gold; }
     .silver { background: silver; }
     .bronze { background: #cd7f32; }
-    #gameOverMsg {
-      position: absolute;
-      top: 40%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 2em;
-      color: #b22222;
-      background: white;
-      padding: 10px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px #999;
-      display: none;
-      z-index: 10;
+    .winner-highlight {
+      font-size: 1.2em;
+      color: green;
+      font-weight: bold;
+    }
+    .avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
     }
   </style>
   <script type="module">
@@ -136,46 +134,39 @@
           getDocs(dailyRef)
         ]);
 
-        const totalData = [];
-        totalSnap.forEach(doc => {
-          const data = doc.data();
-          const total = typeof data.total === "number" ? data.total : 0;
-          totalData.push([doc.id, total]);
+        const allUsers = Object.keys(users);
+
+        const totalData = allUsers.map(name => {
+          const docSnap = totalSnap.docs.find(d => d.id === name);
+          const score = docSnap?.data()?.total || 0;
+          return [name, score];
         });
 
-        const dailyData = [];
-        dailySnap.forEach(doc => {
-          const data = doc.data();
-          const score = typeof data.score === "number" ? data.score : 0;
-          dailyData.push([doc.id, score]);
+        const dailyData = allUsers.map(name => {
+          const docSnap = dailySnap.docs.find(d => d.id === name);
+          const score = docSnap?.data()?.score || 0;
+          return [name, score];
         });
 
         totalData.sort((a, b) => b[1] - a[1]);
         dailyData.sort((a, b) => b[1] - a[1]);
 
         const totalRows = document.querySelector("#totalBoard tbody");
-        totalRows.innerHTML = totalData.length === 0 ? "<tr><td colspan='3'>No scores yet</td></tr>" : "";
-        totalData.forEach(([name, score], i) => {
-          const tr = document.createElement("tr");
-          if (i === 0) tr.classList.add("gold");
-          if (i === 1) tr.classList.add("silver");
-          if (i === 2) tr.classList.add("bronze");
-          tr.innerHTML = `<td>${i + 1}</td><td>${name}</td><td>${score.toFixed(1)}</td>`;
-          totalRows.appendChild(tr);
-        });
-
         const dailyRows = document.querySelector("#dailyBoard tbody");
-        dailyRows.innerHTML = dailyData.length === 0 ? "<tr><td colspan='3'>No plays today</td></tr>" : "";
-        dailyData.forEach(([name, score], i) => {
-          const tr = document.createElement("tr");
-          if (i === 0) tr.classList.add("gold");
-          if (i === 1) tr.classList.add("silver");
-          if (i === 2) tr.classList.add("bronze");
-          tr.innerHTML = `<td>${i + 1}</td><td>${name}</td><td>${score.toFixed(1)}</td>`;
-          dailyRows.appendChild(tr);
-        });
+
+        totalRows.innerHTML = totalData.map(([name, score], i) => {
+          const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : "";
+          return `<tr class='${i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : ""}'><td>${i + 1}</td><td>${medal} ${name}</td><td>${score.toFixed(1)}</td></tr>`;
+        }).join("");
+
+        dailyRows.innerHTML = dailyData.map(([name, score], i) => {
+          const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : "";
+          return `<tr class='${i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : ""}'><td>${i + 1}</td><td>${medal} ${name}</td><td>${score.toFixed(1)}</td></tr>`;
+        }).join("");
+
+        document.getElementById("winnerHighlight").innerText = dailyData[0] ? `🎉 Today’s Winner: ${dailyData[0][0]} with ${dailyData[0][1]} points!` : "No plays today yet.";
       } catch (e) {
-        console.error("Failed to load leaderboards", e);
+        console.error("Failed to load leaderboard", e);
       }
     }
 
@@ -204,12 +195,15 @@
     <div id="scoreDisplay">Score: 0</div>
     <div id="gameArea"></div>
     <button id="playAgainBtn" onclick="startGame()">Play Again</button>
+
     <h3>🏆 All-Time Leaderboard</h3>
     <table class="leaderboard-table" id="totalBoard">
       <thead><tr><th>Rank</th><th>Player</th><th>Score</th></tr></thead>
       <tbody></tbody>
     </table>
-    <h3>🎉 Today's Top Scorer</h3>
+
+    <h3>📅 Daily Leaderboard</h3>
+    <div class="winner-highlight" id="winnerHighlight"></div>
     <table class="leaderboard-table" id="dailyBoard">
       <thead><tr><th>Rank</th><th>Player</th><th>Score</th></tr></thead>
       <tbody></tbody>
@@ -217,3 +211,4 @@
   </div>
 </body>
 </html>
+

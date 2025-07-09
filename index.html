@@ -1,255 +1,161 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Avigyan Kingdom</title>
   <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to bottom, #e0c3fc, #8ec5fc);
-      text-align: center;
-      padding: 20px;
-    }
-    #loginBox, #membersBox {
-      background: #fff;
-      padding: 20px;
-      margin: auto;
-      border-radius: 10px;
-      max-width: 400px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
-    }
-    #membersBox { display: none; }
-    .poop {
-      position: absolute;
-      font-size: 30px;
-      cursor: pointer;
-      animation: wobble 0.5s infinite alternate;
-      transition: transform 0.3s ease;
-    }
-    .poop.explode {
-      animation: explode 0.5s ease forwards;
-    }
-    @keyframes wobble {
-      from { transform: rotate(-10deg); }
-      to { transform: rotate(10deg); }
-    }
-    @keyframes explode {
-      0% { transform: scale(1); opacity: 1; }
-      100% { transform: scale(2); opacity: 0; }
-    }
-    #gameArea {
-      height: 300px;
-      background: #f9f9f9;
-      margin-top: 20px;
-      position: relative;
-      overflow: hidden;
-      border: 2px dashed #ccc;
-    }
-    .monthly-winners, #leaderList, #winnersList {
-      text-align: left;
-      margin: 10px auto;
-      max-width: 400px;
-    }
-    .monthly-winners h3 { margin-bottom: 0; }
-    input, select, button {
-      margin: 5px;
-      padding: 10px;
-    }
-    ul { list-style: none; padding: 0; }
-    .score-popup {
-      position: absolute;
-      color: green;
-      font-size: 16px;
-      animation: floatUp 1s ease-out forwards;
-    }
-    @keyframes floatUp {
-      0% { opacity: 1; transform: translateY(0); }
-      100% { opacity: 0; transform: translateY(-50px); }
-    }
+    body { font-family:'Segoe UI',sans-serif; background:linear-gradient(to bottom,#fefcea,#f1da36); text-align:center; margin:0; padding:0;}
+    h1{font-size:2.5em;color:#6b4e14;margin:20px;}
+    input,select,button{padding:8px;margin:5px;}
+    button{background:#ffcc00;border:none;border-radius:5px;cursor:pointer;font-weight:bold;}
+    #timer{font-size:1.2em;margin:10px;color:#b22222;}
+    #gameArea{height:300px;position:relative;background:#fff3cd;margin:20px auto;width:300px;overflow:hidden;}
+    .poop{position:absolute;top:0;font-size:24px;}
+    #playAgainBtn{display:none;margin-top:15px;}
+    .leaderboard-table{margin:20px auto;width:60%;border-collapse:collapse;}
+    .leaderboard-table th,.leaderboard-table td{border:1px solid #ccc;padding:10px;}
+    .gold{background:gold;} .silver{background:silver;} .bronze{background:#cd7f32;}
   </style>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    const firebaseConfig = {
+      apiKey: "AIzaSyD-xD6K9L-y2vTLKStArK4NFG3ZgzBE62I",
+      authDomain: "avigyan-kingdom.firebaseapp.com",
+      projectId: "avigyan-kingdom",
+      storageBucket: "avigyan-kingdom.appspot.com",
+      messagingSenderId: "201196096111",
+      appId: "1:201196096111:web:0d10f2a385efb021cf4201"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const users = { piku:'dhiku', chotu:'gadha', mam:'goru', gunja:'hagu', avigyan:'king' };
+    let currentUser = "";
+
+    async function showTotalLeaderboard(){
+      const rows = document.querySelector("#totalBoard tbody"); rows.innerHTML="";
+      let arr = [];
+      const snap = await getDocs(collection(db, "scores"));
+      snap.forEach(d => arr.push([d.id, d.data().total]));
+      arr.sort((a,b)=>b[1]-a[1]);
+      arr.forEach(([name, score], idx)=>{
+        const tr = document.createElement("tr");
+        if(idx==0) tr.classList.add("gold");
+        if(idx==1) tr.classList.add("silver");
+        if(idx==2) tr.classList.add("bronze");
+        tr.innerHTML=`<td>${idx+1}</td><td>${name}</td><td>${score.toFixed(1)}</td>`;
+        rows.appendChild(tr);
+      });
+    }
+
+    async function showDailyLeaderboard(){
+      const today = new Date().toISOString().slice(0,10);
+      const rows = document.querySelector("#dailyBoard tbody"); rows.innerHTML="";
+      let arr = [];
+      const snap = await getDocs(collection(db, `daily-${today}`));
+      snap.forEach(d => arr.push([d.id, d.data().score]));
+      arr.sort((a,b)=>b[1]-a[1]);
+      arr.forEach(([name, score], idx)=>{
+        const tr = document.createElement("tr");
+        if(idx==0) tr.classList.add("gold");
+        if(idx==1) tr.classList.add("silver");
+        if(idx==2) tr.classList.add("bronze");
+        tr.innerHTML=`<td>${idx+1}</td><td>${name}</td><td>${score.toFixed(1)}</td>`;
+        rows.appendChild(tr);
+      });
+    }
+
+    function login(){
+      const u = document.getElementById("username").value.toLowerCase();
+      const p = document.getElementById("password").value.toLowerCase();
+      if(users[u]===p){
+        currentUser=u;
+        document.getElementById("loginBox").style.display="none";
+        document.getElementById("gameBox").style.display="block";
+        document.getElementById("playerName").innerText = u;
+        showTotalLeaderboard();
+        showDailyLeaderboard();
+      } else document.getElementById("error").innerText="Wrong credentials!";
+    }
+
+    function startGame(){
+      const diff = document.getElementById("difficulty").value;
+      const gameArea = document.getElementById("gameArea");
+      const scoreDisplay = document.getElementById("scoreDisplay");
+      const timerDisplay = document.getElementById("timer");
+      const playAgain = document.getElementById("playAgainBtn");
+
+      gameArea.innerHTML=""; playAgain.style.display="none";
+      let score=0, missed=0, sec=30;
+      scoreDisplay.innerText="Score: 0";
+      timerDisplay.innerText=`⏳ Time left: ${sec}s`;
+
+      const ptsMap = {easy:1,medium:1.5,hard:2}[diff];
+      const fallSpd = {easy:60,medium:40,hard:25}[diff];
+      const rate = {easy:1000,medium:700,hard:400}[diff];
+
+      const tI = setInterval(()=>{
+        sec--; timerDisplay.innerText=`⏳ Time left: ${sec}s`;
+        if(sec<=0){clearInterval(tI);clearInterval(pI);endGame();}
+      },1000);
+
+      function drop(){
+        const pc = document.createElement("div"); pc.className="poop"; pc.textContent="💩";
+        pc.style.left=Math.random()*90+"%"; gameArea.appendChild(pc);
+        let pos=0;
+        const fI=setInterval(()=>{
+          if(pos>=270){clearInterval(fI);pc.remove();missed++;
+            if(missed>=3){clearInterval(tI);clearInterval(pI);endGame();}}
+          else{pos+=5;pc.style.top=pos+"px";}
+        },fallSpd);
+        pc.onclick=()=>{
+          clearInterval(fI);pc.remove();score+=ptsMap;scoreDisplay.innerText=`Score: ${score.toFixed(1)}`;
+        };
+      }
+
+      const pI = setInterval(()=>{if(missed<3&&sec>0)drop();},rate);
+
+      async function endGame(){
+        alert(`Game Over! Score: ${score.toFixed(1)}`);
+        gameArea.innerHTML=""; timerDisplay.innerText="";
+        playAgain.style.display="inline-block";
+        const now=new Date(), today=now.toISOString().slice(0,10);
+        const uRef=doc(db,"scores",currentUser);
+        const snap=await getDoc(uRef);
+        const prev=snap.exists()?snap.data().total:0;
+        await setDoc(uRef,{total:prev+score,lastPlayed:now.toISOString()});
+        const dRef=doc(db,`daily-${today}`,currentUser);
+        await setDoc(dRef,{score,time:now.toISOString()});
+        showTotalLeaderboard(); showDailyLeaderboard();
+      }
+    }
+  </script>
 </head>
 <body>
   <h1>🏰 Welcome to Avigyan Kingdom 🏰</h1>
-
   <div id="loginBox">
-    <h2>Login</h2>
     <input type="text" id="username" placeholder="Username"><br>
     <input type="password" id="password" placeholder="Password"><br>
     <button onclick="login()">Login</button>
     <p id="error" style="color:red"></p>
   </div>
-
-  <div id="membersBox">
-    <h2>Welcome, <span id="memberName"></span>!</h2>
-    <p id="taskText"></p>
+  <div id="gameBox" style="display:none">
+    <h2>Welcome, <span id="playerName"></span>!</h2>
+    <p>🎯 Task: Tap falling poops!</p>
     <select id="difficulty">
       <option value="easy">Easy</option>
       <option value="medium">Medium</option>
       <option value="hard">Hard</option>
-    </select>
-    <button onclick="startPoopGame()">Start Game</button>
-    <div id="scoreboard"></div>
+    </select><button onclick="startGame()">Start Game</button>
     <div id="timer"></div>
+    <div id="scoreDisplay">Score: 0</div>
     <div id="gameArea"></div>
-    <button id="restartBtn" onclick="startPoopGame()" style="display:none">Restart</button>
-
-    <h3>🏆 Leaderboard</h3>
-    <ul id="leaderList"></ul>
-
-    <h3>📅 Daily Winners</h3>
-    <ul id="winnersList"></ul>
+    <button id="playAgainBtn" onclick="startGame()">Play Again</button>
+    <h3>🏆 All-Time Leaderboard</h3>
+    <table class="leaderboard-table" id="totalBoard"><thead><tr><th>Rank</th><th>Player</th><th>Score</th></tr></thead><tbody></tbody></table>
+    <h3>🎉 Today's Top Scorer</h3>
+    <table class="leaderboard-table" id="dailyBoard"><thead><tr><th>Rank</th><th>Player</th><th>Score</th></tr></thead><tbody></tbody></table>
   </div>
-
-  <audio id="popSound" src="https://www.fesliyanstudios.com/play-mp3/387" preload="auto"></audio>
-  <audio id="missSound" src="https://www.fesliyanstudios.com/play-mp3/6678" preload="auto"></audio>
-
-  <script>
-    const scores = JSON.parse(localStorage.getItem("scores") || '{}');
-    let currentUser = "";
-
-    function login() {
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
-      const users = {
-        piku: "dhiku",
-        chotu: "gadha",
-        mam: "goru",
-        gunja: "hagu",
-        avigyan: "king"
-      };
-
-      if (users[username.toLowerCase()] === password.toLowerCase()) {
-        currentUser = username;
-        document.getElementById("loginBox").style.display = "none";
-        document.getElementById("membersBox").style.display = "block";
-        document.getElementById("memberName").textContent = username;
-        document.getElementById("taskText").textContent = "💩 Today's Task: Clean up the falling poops by tapping them!";
-        updateLeaderboard();
-        showDailyWinner();
-      } else {
-        document.getElementById("error").textContent = "❌ Incorrect username or password.";
-      }
-    }
-
-    function startPoopGame() {
-      const gameArea = document.getElementById("gameArea");
-      const scoreboard = document.getElementById("scoreboard");
-      const timerDisplay = document.getElementById("timer");
-      const restartBtn = document.getElementById("restartBtn");
-
-      gameArea.innerHTML = "";
-      let score = 0;
-      let misses = 0;
-      let timeLeft = 30;
-
-      const difficulty = document.getElementById("difficulty").value;
-      const pointMap = { easy: 1, medium: 1.5, hard: 2 };
-      let fallSpeed = { easy: 50, medium: 35, hard: 20 }[difficulty];
-      let spawnRate = { easy: 1200, medium: 800, hard: 500 }[difficulty];
-
-      function updateUI() {
-        scoreboard.textContent = `Points: ${score.toFixed(1)} | Misses: ${misses}/3`;
-        timerDisplay.textContent = `⏱ ${timeLeft}s`;
-      }
-
-      function endGame(msg) {
-        clearInterval(spawnInterval);
-        clearInterval(timerInterval);
-        alert(msg);
-        restartBtn.style.display = "block";
-        if (!scores[currentUser]) scores[currentUser] = 0;
-        scores[currentUser] += score;
-        localStorage.setItem("scores", JSON.stringify(scores));
-        updateLeaderboard();
-        updateDailyWinner();
-      }
-
-      function showScorePopup(x, y, points) {
-        const popup = document.createElement("div");
-        popup.className = "score-popup";
-        popup.style.left = x + 'px';
-        popup.style.top = y + 'px';
-        popup.textContent = `+${points}`;
-        gameArea.appendChild(popup);
-        setTimeout(() => popup.remove(), 1000);
-      }
-
-      function spawnPoop() {
-        const poop = document.createElement("div");
-        poop.className = "poop";
-        poop.innerHTML = "💩";
-        poop.style.left = Math.random() * 90 + "%";
-        poop.style.top = "-30px";
-        gameArea.appendChild(poop);
-
-        let fall = setInterval(() => {
-          let top = parseInt(poop.style.top);
-          poop.style.top = top + 5 + "px";
-          if (top > 270) {
-            clearInterval(fall);
-            gameArea.removeChild(poop);
-            misses++;
-            document.getElementById("missSound").play();
-            updateUI();
-            if (misses >= 3) endGame("💀 Too many poops missed!");
-          }
-        }, fallSpeed);
-
-        poop.onclick = (e) => {
-          clearInterval(fall);
-          poop.classList.add("explode");
-          setTimeout(() => poop.remove(), 500);
-          score += pointMap[difficulty];
-          document.getElementById("popSound").play();
-          updateUI();
-          const rect = poop.getBoundingClientRect();
-          showScorePopup(rect.left, rect.top, pointMap[difficulty]);
-        };
-      }
-
-      updateUI();
-      const spawnInterval = setInterval(spawnPoop, spawnRate);
-      const timerInterval = setInterval(() => {
-        timeLeft--;
-        updateUI();
-        if (timeLeft <= 0) endGame(`🎉 Time's up! Final Score: ${score.toFixed(1)} points`);
-      }, 1000);
-    }
-
-    function updateLeaderboard() {
-      const list = document.getElementById("leaderList");
-      list.innerHTML = "";
-      Object.entries(scores)
-        .sort((a, b) => b[1] - a[1])
-        .forEach(([user, score]) => {
-          const li = document.createElement("li");
-          li.textContent = `${user}: ${score.toFixed(1)} points`;
-          list.appendChild(li);
-        });
-    }
-
-    function updateDailyWinner() {
-      const today = new Date().toISOString().slice(0, 10);
-      const winners = JSON.parse(localStorage.getItem("dailyWinners") || '{}');
-      const topUser = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
-      if (topUser) {
-        winners[today] = topUser[0];
-        localStorage.setItem("dailyWinners", JSON.stringify(winners));
-        showDailyWinner();
-      }
-    }
-
-    function showDailyWinner() {
-      const winnersList = document.getElementById("winnersList");
-      winnersList.innerHTML = "";
-      const winners = JSON.parse(localStorage.getItem("dailyWinners") || '{}');
-      Object.entries(winners).slice(-7).forEach(([day, user]) => {
-        const li = document.createElement("li");
-        li.textContent = `${day}: 👑 ${user}`;
-        winnersList.appendChild(li);
-      });
-    }
-  </script>
 </body>
 </html>

@@ -1,0 +1,218 @@
+// Full updated HTML with leaderboard, sound, timer, restart, difficulty
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Avigyan Kingdom</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+      color: white;
+      text-align: center;
+      padding: 50px;
+      margin: 0;
+    }
+    .container { max-width: 400px; margin: auto; }
+    .login-box, .members-box {
+      background-color: rgba(255, 255, 255, 0.05);
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+      margin-top: 40px;
+    }
+    input, button {
+      width: 90%; padding: 12px; margin: 12px 0;
+      border: none; border-radius: 8px;
+      font-size: 16px;
+    }
+    button {
+      background-color: #00ffcc;
+      color: #000; font-weight: bold; cursor: pointer;
+    }
+    button:hover { background-color: #00ccaa; }
+    ul { list-style: none; padding: 0; margin-top: 20px; }
+    li {
+      padding: 10px;
+      background-color: rgba(255,255,255,0.1);
+      margin: 8px 0; border-radius: 8px;
+    }
+    .game-area {
+      margin-top: 20px;
+      position: relative;
+      height: 300px;
+      background: #111;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid #00ffcc;
+    }
+    .poop {
+      width: 40px; height: 40px; background: brown;
+      border-radius: 50%; position: absolute;
+      cursor: pointer; font-size: 30px;
+    }
+    #scoreboard, #timer, #leaderboard {
+      font-size: 18px; font-weight: bold; margin-top: 10px;
+    }
+    #restartBtn {
+      display: none;
+      background-color: #ffcc00;
+      color: black;
+    }
+    #difficultySelect {
+      margin-top: 10px;
+      padding: 8px;
+      font-size: 16px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🏰 Welcome to <strong>Avigyan Kingdom</strong></h1>
+    <p>To become a member, login first...</p>
+
+    <div class="login-box" id="loginBox">
+      <input type="text" id="username" placeholder="Enter Username">
+      <input type="password" id="password" placeholder="Enter Password">
+      <button onclick="login()">Login</button>
+      <p id="error" style="color: #ff8080;"></p>
+    </div>
+
+    <div class="members-box" id="membersBox" style="display:none;">
+      <h2>🎉 Welcome, <span id="memberName"></span>!</h2>
+      <ul>
+        <li><strong>👑 Avigyan</strong> (The Head)</li>
+        <li>🧒 Piku</li><li>🧒 Chotu</li><li>👩 Mam</li><li>🧑 Gunja</li>
+      </ul>
+      <div class="task-box">
+        <h3>📝 Today's Funny Task</h3>
+        <p id="taskText"></p>
+      </div>
+      <label for="difficultySelect">Select Difficulty:</label>
+      <select id="difficultySelect">
+        <option value="1000">Easy</option>
+        <option value="700">Medium</option>
+        <option value="400">Hard</option>
+      </select>
+      <div class="game-area" id="gameArea"></div>
+      <div id="scoreboard">Score: 0 | Misses: 0 / 3</div>
+      <div id="timer">⏱️ Time: 30s</div>
+      <button id="restartBtn" onclick="startPoopGame()">🔁 Restart Game</button>
+      <div id="leaderboard"></div>
+    </div>
+  </div>
+
+  <audio id="popSound" src="https://www.soundjay.com/button/sounds/button-16.mp3"></audio>
+  <audio id="missSound" src="https://www.soundjay.com/button/sounds/beep-07.mp3"></audio>
+
+  <script>
+    const users = {
+  piku: "dhiku",
+  chotu: "gadha",
+  mam: "goru",
+  gunja: "hagu",
+  avigyan: "king"
+};
+    const funnyTasks = ["🐶 Clean the poops falling from the sky! Use your royal poop-scooper!"];
+    let leaderboardScores = [];
+
+    function getRandomTask() { return funnyTasks[0]; }
+
+    function login() {
+      const u = document.getElementById("username").value.toLowerCase();
+      const p = document.getElementById("password").value.toLowerCase();
+      if (users[u] === p) {
+        document.getElementById("loginBox").style.display = "none";
+        document.getElementById("membersBox").style.display = "block";
+        document.getElementById("memberName").textContent = u.charAt(0).toUpperCase() + u.slice(1);
+        document.getElementById("taskText").textContent = getRandomTask();
+        startPoopGame();
+      } else {
+        document.getElementById("error").textContent = "🚫 Invalid username or password. Try again!";
+      }
+    }
+
+    let spawnInterval, timerInterval;
+    function startPoopGame() {
+      const gameArea = document.getElementById("gameArea");
+      const scoreboard = document.getElementById("scoreboard");
+      const timerDisplay = document.getElementById("timer");
+      const restartBtn = document.getElementById("restartBtn");
+      const popSound = document.getElementById("popSound");
+      const missSound = document.getElementById("missSound");
+      const leaderboard = document.getElementById("leaderboard");
+
+      gameArea.innerHTML = "";
+      let score = 0, misses = 0, timeLeft = 30;
+      restartBtn.style.display = "none";
+      let difficulty = parseInt(document.getElementById("difficultySelect").value);
+
+      function updateUI() {
+        scoreboard.textContent = `Score: ${score} | Misses: ${misses} / 3`;
+        timerDisplay.textContent = `⏱️ Time: ${timeLeft}s`;
+      }
+
+      function updateLeaderboard(newScore) {
+        const name = document.getElementById("memberName").textContent;
+        leaderboardScores.push({ name, score: newScore });
+        leaderboardScores.sort((a, b) => b.score - a.score);
+        let html = '<h3>🏆 Leaderboard</h3><ol>';
+        leaderboardScores.slice(0, 5).forEach(p => {
+          html += `<li>${p.name}: ${p.score}</li>`;
+        });
+        html += '</ol>';
+        leaderboard.innerHTML = html;
+      }
+
+      function endGame(msg) {
+        clearInterval(spawnInterval);
+        clearInterval(timerInterval);
+        alert(msg);
+        updateLeaderboard(score);
+        restartBtn.style.display = "block";
+      }
+
+      function spawnPoop() {
+        const poop = document.createElement("div");
+        poop.className = "poop";
+        poop.innerHTML = "💩";
+        poop.style.left = Math.random() * 90 + "%";
+        poop.style.top = "-40px";
+        gameArea.appendChild(poop);
+
+        let fall = setInterval(() => {
+          let top = parseInt(poop.style.top);
+          poop.style.top = top + 4 + "px";
+          if (top > 260) {
+            clearInterval(fall);
+            gameArea.removeChild(poop);
+            misses++;
+            missSound.play();
+            updateUI();
+            if (misses >= 3) endGame("💀 Disqualified! Too many poops missed!");
+          }
+        }, 30);
+
+        poop.onclick = () => {
+          clearInterval(fall);
+          gameArea.removeChild(poop);
+          score++;
+          popSound.play();
+          updateUI();
+        };
+      }
+
+      updateUI();
+      spawnInterval = setInterval(spawnPoop, difficulty);
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        updateUI();
+        if (timeLeft <= 0) endGame(`🎉 Time's up! Final Score: ${score}`);
+      }, 1000);
+    }
+  </script>
+</body>
+</html>

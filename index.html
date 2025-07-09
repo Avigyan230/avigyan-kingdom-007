@@ -1,4 +1,3 @@
-// Full updated HTML with leaderboard, sound, timer, restart, difficulty
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,173 +5,151 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Avigyan Kingdom</title>
   <style>
-    * { box-sizing: border-box; }
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #1e3c72, #2a5298);
       color: white;
       text-align: center;
-      padding: 50px;
-      margin: 0;
+      padding: 40px;
     }
-    .container { max-width: 400px; margin: auto; }
-    .login-box, .members-box {
-      background-color: rgba(255, 255, 255, 0.05);
-      padding: 25px;
-      border-radius: 15px;
-      box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-      margin-top: 40px;
-    }
-    input, button {
-      width: 90%; padding: 12px; margin: 12px 0;
-      border: none; border-radius: 8px;
+    input, button, select {
+      padding: 10px;
+      margin: 10px;
+      border: none;
+      border-radius: 8px;
       font-size: 16px;
     }
     button {
       background-color: #00ffcc;
-      color: #000; font-weight: bold; cursor: pointer;
+      cursor: pointer;
     }
-    button:hover { background-color: #00ccaa; }
-    ul { list-style: none; padding: 0; margin-top: 20px; }
-    li {
-      padding: 10px;
-      background-color: rgba(255,255,255,0.1);
-      margin: 8px 0; border-radius: 8px;
-    }
-    .game-area {
-      margin-top: 20px;
-      position: relative;
+    #gameArea {
+      margin: 20px auto;
       height: 300px;
-      background: #111;
+      width: 100%;
+      max-width: 400px;
+      background-color: black;
+      position: relative;
       border-radius: 10px;
       overflow: hidden;
-      border: 2px solid #00ffcc;
     }
     .poop {
-      width: 40px; height: 40px; background: brown;
-      border-radius: 50%; position: absolute;
-      cursor: pointer; font-size: 30px;
+      position: absolute;
+      font-size: 30px;
     }
-    #scoreboard, #timer, #leaderboard {
-      font-size: 18px; font-weight: bold; margin-top: 10px;
+    .leaderboard, .winners {
+      margin-top: 30px;
+      text-align: center;
     }
-    #restartBtn {
-      display: none;
-      background-color: #ffcc00;
-      color: black;
-    }
-    #difficultySelect {
-      margin-top: 10px;
-      padding: 8px;
-      font-size: 16px;
-      border-radius: 8px;
+    .leaderboard ul, .winners ul {
+      list-style: none;
+      padding: 0;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🏰 Welcome to <strong>Avigyan Kingdom</strong></h1>
-    <p>To become a member, login first...</p>
-
-    <div class="login-box" id="loginBox">
-      <input type="text" id="username" placeholder="Enter Username">
-      <input type="password" id="password" placeholder="Enter Password">
-      <button onclick="login()">Login</button>
-      <p id="error" style="color: #ff8080;"></p>
-    </div>
-
-    <div class="members-box" id="membersBox" style="display:none;">
-      <h2>🎉 Welcome, <span id="memberName"></span>!</h2>
-      <ul>
-        <li><strong>👑 Avigyan</strong> (The Head)</li>
-        <li>🧒 Piku</li><li>🧒 Chotu</li><li>👩 Mam</li><li>🧑 Gunja</li>
-      </ul>
-      <div class="task-box">
-        <h3>📝 Today's Funny Task</h3>
-        <p id="taskText"></p>
-      </div>
-      <label for="difficultySelect">Select Difficulty:</label>
-      <select id="difficultySelect">
-        <option value="1000">Easy</option>
-        <option value="700">Medium</option>
-        <option value="400">Hard</option>
+  <h1>🏰 Welcome to Avigyan Kingdom</h1>
+  <div id="loginBox">
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="prepareAudio(); login();">Login</button>
+    <p id="error" style="color: red;"></p>
+  </div>
+  <div id="membersBox" style="display:none;">
+    <h2>Welcome, <span id="memberName"></span>!</h2>
+    <p id="taskText"></p>
+    <label>Difficulty:
+      <select id="difficulty">
+        <option value="easy">Easy</option>
+        <option value="medium" selected>Medium</option>
+        <option value="hard">Hard</option>
       </select>
-      <div class="game-area" id="gameArea"></div>
-      <div id="scoreboard">Score: 0 | Misses: 0 / 3</div>
-      <div id="timer">⏱️ Time: 30s</div>
-      <button id="restartBtn" onclick="startPoopGame()">🔁 Restart Game</button>
-      <div id="leaderboard"></div>
+    </label>
+    <br />
+    <button onclick="startPoopGame()">Start Game</button>
+    <div id="gameArea"></div>
+    <div id="scoreboard"></div>
+    <div id="timer"></div>
+    <button id="restartBtn" onclick="startPoopGame()" style="display:none;">Restart Game</button>
+    <div class="leaderboard">
+      <h3>🏆 Leaderboard</h3>
+      <ul id="leaderList"></ul>
+    </div>
+    <div class="winners">
+      <h3>📅 Daily Winners</h3>
+      <ul id="winnersList"></ul>
     </div>
   </div>
 
-  <audio id="popSound" src="https://www.soundjay.com/button/sounds/button-16.mp3"></audio>
-  <audio id="missSound" src="https://www.soundjay.com/button/sounds/beep-07.mp3"></audio>
+  <audio id="popSound" preload="auto">
+    <source src="https://www.soundjay.com/button/sounds/button-16.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="missSound" preload="auto">
+    <source src="https://www.soundjay.com/button/sounds/beep-07.mp3" type="audio/mpeg">
+  </audio>
 
   <script>
-    const users = {
-  piku: "dhiku",
-  chotu: "gadha",
-  mam: "goru",
-  gunja: "hagu",
-  avigyan: "king"
-};
-    const funnyTasks = ["🐶 Clean the poops falling from the sky! Use your royal poop-scooper!"];
-    let leaderboardScores = [];
+    const users = { piku: "dhiku", chotu: "gadha", mam: "goru", gunja: "hagu", avigyan: "king" };
+    const funnyTasks = ["💩 Clean up falling poops with your mighty finger tap!"];
+    let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
+    let dailyWinners = JSON.parse(localStorage.getItem('dailyWinners')) || [];
+    let currentUser = "";
 
-    function getRandomTask() { return funnyTasks[0]; }
+    let popSound, missSound;
+    function prepareAudio() {
+      popSound = document.getElementById("popSound");
+      missSound = document.getElementById("missSound");
+      popSound.play().then(() => popSound.pause()).catch(() => {});
+      missSound.play().then(() => missSound.pause()).catch(() => {});
+    }
 
     function login() {
       const u = document.getElementById("username").value.toLowerCase();
       const p = document.getElementById("password").value.toLowerCase();
       if (users[u] === p) {
+        currentUser = u;
         document.getElementById("loginBox").style.display = "none";
         document.getElementById("membersBox").style.display = "block";
-        document.getElementById("memberName").textContent = u.charAt(0).toUpperCase() + u.slice(1);
-        document.getElementById("taskText").textContent = getRandomTask();
-        startPoopGame();
+        document.getElementById("memberName").textContent = u;
+        document.getElementById("taskText").textContent = funnyTasks[0];
+        showLeaderboard();
+        showDailyWinners();
       } else {
-        document.getElementById("error").textContent = "🚫 Invalid username or password. Try again!";
+        document.getElementById("error").textContent = "❌ Incorrect username or password.";
       }
     }
 
-    let spawnInterval, timerInterval;
     function startPoopGame() {
       const gameArea = document.getElementById("gameArea");
       const scoreboard = document.getElementById("scoreboard");
       const timerDisplay = document.getElementById("timer");
       const restartBtn = document.getElementById("restartBtn");
-      const popSound = document.getElementById("popSound");
-      const missSound = document.getElementById("missSound");
-      const leaderboard = document.getElementById("leaderboard");
 
       gameArea.innerHTML = "";
       let score = 0, misses = 0, timeLeft = 30;
       restartBtn.style.display = "none";
-      let difficulty = parseInt(document.getElementById("difficultySelect").value);
+
+      const difficulty = document.getElementById("difficulty").value;
+      let fallSpeed = { easy: 50, medium: 35, hard: 20 }[difficulty];
+      let spawnRate = { easy: 1200, medium: 800, hard: 500 }[difficulty];
 
       function updateUI() {
-        scoreboard.textContent = `Score: ${score} | Misses: ${misses} / 3`;
-        timerDisplay.textContent = `⏱️ Time: ${timeLeft}s`;
-      }
-
-      function updateLeaderboard(newScore) {
-        const name = document.getElementById("memberName").textContent;
-        leaderboardScores.push({ name, score: newScore });
-        leaderboardScores.sort((a, b) => b.score - a.score);
-        let html = '<h3>🏆 Leaderboard</h3><ol>';
-        leaderboardScores.slice(0, 5).forEach(p => {
-          html += `<li>${p.name}: ${p.score}</li>`;
-        });
-        html += '</ol>';
-        leaderboard.innerHTML = html;
+        scoreboard.textContent = `Score: ${score} | Misses: ${misses}/3`;
+        timerDisplay.textContent = `⏱ ${timeLeft}s`;
       }
 
       function endGame(msg) {
         clearInterval(spawnInterval);
         clearInterval(timerInterval);
         alert(msg);
-        updateLeaderboard(score);
         restartBtn.style.display = "block";
+        const today = new Date().toISOString().slice(0, 10);
+        leaderboard = leaderboard.filter(e => !(e.name === currentUser && e.date === today && e.difficulty === difficulty));
+        leaderboard.push({ name: currentUser, score, date: today, difficulty });
+        localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
+        updateDailyWinners();
+        showLeaderboard();
+        showDailyWinners();
       }
 
       function spawnPoop() {
@@ -180,38 +157,70 @@
         poop.className = "poop";
         poop.innerHTML = "💩";
         poop.style.left = Math.random() * 90 + "%";
-        poop.style.top = "-40px";
+        poop.style.top = "-30px";
         gameArea.appendChild(poop);
 
         let fall = setInterval(() => {
           let top = parseInt(poop.style.top);
-          poop.style.top = top + 4 + "px";
-          if (top > 260) {
+          poop.style.top = top + 5 + "px";
+          if (top > 270) {
             clearInterval(fall);
             gameArea.removeChild(poop);
             misses++;
-            missSound.play();
+            missSound && missSound.play();
             updateUI();
-            if (misses >= 3) endGame("💀 Disqualified! Too many poops missed!");
+            if (misses >= 3) endGame("💀 Too many poops missed!");
           }
-        }, 30);
+        }, fallSpeed);
 
         poop.onclick = () => {
           clearInterval(fall);
           gameArea.removeChild(poop);
           score++;
-          popSound.play();
+          popSound && popSound.play();
           updateUI();
         };
       }
 
       updateUI();
-      spawnInterval = setInterval(spawnPoop, difficulty);
-      timerInterval = setInterval(() => {
+      const spawnInterval = setInterval(spawnPoop, spawnRate);
+      const timerInterval = setInterval(() => {
         timeLeft--;
         updateUI();
         if (timeLeft <= 0) endGame(`🎉 Time's up! Final Score: ${score}`);
       }, 1000);
+    }
+
+    function showLeaderboard() {
+      const scores = {};
+      leaderboard.forEach(e => {
+        const key = `${e.name}-${e.difficulty}`;
+        if (!scores[key] || scores[key] < e.score) scores[key] = e.score;
+      });
+      const sorted = Object.entries(scores)
+        .map(([k, s]) => ({ name: k.split('-')[0], diff: k.split('-')[1], score: s }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10);
+      document.getElementById("leaderList").innerHTML = sorted
+        .map(p => `<li>${p.name} (${p.diff}) - ${p.score} 💩</li>`).join("");
+    }
+
+    function updateDailyWinners() {
+      const today = new Date().toISOString().slice(0, 10);
+      const todayScores = leaderboard.filter(e => e.date === today);
+      if (!todayScores.length) return;
+      const top = todayScores.sort((a, b) => b.score - a.score)[0];
+      if (!dailyWinners.find(w => w.date === today)) {
+        dailyWinners.unshift({ date: today, name: top.name, score: top.score, difficulty: top.difficulty });
+        if (dailyWinners.length > 7) dailyWinners.pop();
+        localStorage.setItem("dailyWinners", JSON.stringify(dailyWinners));
+      }
+    }
+
+    function showDailyWinners() {
+      document.getElementById("winnersList").innerHTML = dailyWinners
+        .map(w => `<li>${w.date}: ${w.name} (${w.difficulty}) - ${w.score} 💩</li>`)
+        .join("");
     }
   </script>
 </body>
